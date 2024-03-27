@@ -74,10 +74,46 @@ router.put("/elo/:newElo/:pho_id", (req, res) => {
 // delete photo by phoId
 router.delete("/:id", (req, res) => {
   let id = +req.params.id;
-  conn.query("delete from photos where id = ?", [id], (err, result) => {
-     if (err) throw err;
-     res
-       .status(200)
-       .json({ affected_row: result.affectedRows });
+
+  // ลบแถวในตาราง photostate โดยไม่สนใจ foreign key
+  conn.query("DELETE FROM photostate WHERE pho_id = ?", [id], (err, result) => {
+    if (err) {
+      console.error("Error deleting photostate:", err);
+      res.status(500).json({ error: "An error occurred while deleting the photostate" });
+      return;
+    }
+
+    // ตรวจสอบว่ามีแถวในตาราง photostate ที่ถูกลบหรือไม่
+    if (result.affectedRows > 0) {
+      // ลบแถวในตาราง photos เมื่อการลบแถวในตาราง photostate เสร็จสมบูรณ์
+      conn.query("DELETE FROM photos WHERE id = ?", [id], (err, result) => {
+        if (err) {
+          console.error("Error deleting photo:", err);
+          res.status(500).json({ error: "An error occurred while deleting the photo" });
+          return;
+        }
+
+        // ตอบกลับเมื่อทั้งหมดถูกลบเรียบร้อย
+        res.status(200).json({ affected_rows_photos: result.affectedRows });
+      });
+    } else {
+      // ถ้าไม่มีแถวในตาราง photostate ที่ถูกลบ ให้ตรวจสอบการลบแถวในตาราง photos ต่อ
+      conn.query("DELETE FROM photos WHERE id = ?", [id], (err, result) => {
+        if (err) {
+          console.error("Error deleting photo:", err);
+          res.status(500).json({ error: "An error occurred while deleting the photo" });
+          return;
+        }
+        
+        // ตรวจสอบว่ามีแถวในตาราง photos ที่ถูกลบหรือไม่
+        if (result.affectedRows > 0) {
+          // ตอบกลับเมื่อถูกลบเรียบร้อย
+          res.status(200).json({ affected_rows_photos: result.affectedRows });
+        } else {
+          // ถ้าไม่พบข้อมูลในทั้งสองตารางให้ตอบกลับว่าไม่พบข้อมูลที่ต้องการลบ
+          res.status(404).json({ error: "Data not found for deletion" });
+        }
+      });
+    }
   });
 });

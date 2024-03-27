@@ -62,8 +62,8 @@ router.put("/:newname/:u_id", fileUpload.diskLoader.single("file"), (req, res) =
   let u_id = req.params.u_id;
   let newname = req.params.newname;
 
-  // const servername = "https://cactusmash.onrender.com"
   const servername = "https://cactusmash-pp.onrender.com";
+  // const servername = "http://localhost:3000"
   const fileUrl = servername + "/profiles/" + fileUpload.filename; // Fix: Use req.file.filename to get the uploaded filename.
 
   // const sql = `UPDATE users SET username = ?, avatar = ? WHERE id = ?`
